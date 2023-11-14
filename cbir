@@ -1,0 +1,120 @@
+%Diagonal mean and variance:
+%Code 1 
+imgo = imread('D:\Documents\NHCE Documents\20ECL59\testing\a.jpg');
+img = imresize(imgo,[256 256]);
+imgr = img(:,:,1); imgg = img(:,:,2); imgb = img(:,:,3);
+imggr = rgb2gray(img);
+dr = diag(imgr); dg = diag(imgg); db = diag(imgb);
+dgr = diag(imggr);
+dmr = mean(dr); dmg = mean(dg); dmb = mean(db);
+dmgr = mean(dgr);
+sdr = im2double(dr); sdg = im2double(dg); sdb = im2double(db);
+sdgr = im2double(dgr);
+dvr = var(sdr); dvg = var(sdg); dvb = var(sdb);
+dvgr = var(sdgr);
+qdm = [dmr dmg dmb dmgr]';
+qdv = [dvr dvg dvb dvgr]';
+save('query_diag1.xlsx','qdm','-ascii');
+save('query_diag1.mat','imgo','qdm');
+save('query_diag2.xlsx','qdv','-ascii');
+save('query_diag2.mat','imgo','qdv');
+
+%Code 2
+folder = 'D:\Documents\NHCE Documents\20ECL59\testing';
+list = dir(fullfile(folder,'*.jpg'));
+n = length(list);
+save('dbase_diag1.xlsx');
+save('dbase_diag1.mat');
+save('dbase_diag2.xlsx');
+save('dbase_diag2.mat');
+c = 0;
+for i=1:n
+    file = fullfile(folder,list(i).name);
+    rawim = imread(file);
+    img = imresize(rawim,[256 256]);
+    c = c+1;
+    [x,y,z] = size(img);
+    if z == 3
+        imgr = img(:,:,1); 
+        imgg = img(:,:,2); 
+        imgb = img(:,:,3);
+        imggr = rgb2gray(img);
+        ddr = diag(imgr); ddg = diag(imgg); ddb = diag(imgb);
+        ddgr = diag(imggr);
+        ddmr = mean(ddr); ddmg = mean(ddg); ddmb = mean(ddb);
+        ddmgr = mean(ddgr);
+        sddr = im2double(ddr); sddg = im2double(ddg); sddb = im2double(ddb);
+        sddgr = im2double(ddgr);
+        ddvr = var(sddr); ddvg = var(sddg); ddvb = var(sddb);
+        ddvgr = var(sddgr);        
+        dbdm(:,c) = [ddmr ddmg ddmb ddmgr]';        
+        dbdv(:,c) = [ddvr ddvg ddvb ddvgr]';
+    else
+        ddgr = diag(img);
+        ddmgr = mean(ddgr);
+        sddgr = im2double(ddgr);
+        ddvgr = var(sddgr);        
+        dbdm(:,c) = [0 0 0 ddmgr]';
+        dbdv(:,c) = [0 0 0 ddvgr]';
+    end
+    save('dbase_diag1.xlsx','dbdm','-ascii');
+    save('dbase_diag1.mat','dbdm');
+    save('dbase_diag2.xlsx','dbdv','-ascii');
+    save('dbase_diag2.mat','dbdv');
+end
+
+%Code 3
+load('query_diag1.mat');
+load('query_diag2.mat');
+load('dbase_diag1.mat');
+load('dbase_diag2.mat');
+folder = 'D:\Documents\NHCE Documents\20ECL59\testing';
+list = dir(fullfile(folder,'*.jpg'));
+[v,n] = size(dbdm);
+for i=1:n
+    for j=1:3
+        sirgb = 0;
+        sirgb = sirgb + abs((qdv(j,1) - dbdv(j,i))/(qdm(j,1) - dbdm(j,i))).^2;
+    end
+    grgb(i) = sirgb;    
+    sigr = abs((qdm(j,1)/qdv(j,1)) - (dbdm(j,i)/dbdv(j,i))).^2;
+    ggr(i) = sigr;
+end
+[a,b] = sort(grgb,'descend')
+[c,d] = sort(ggr)
+ret = [b(1:10),d(1:10)];
+ret = unique(ret);
+imshow(imgo); axis image; title('Query image');
+figure(2); title('Retrieved images');
+for i=1:length(ret)    
+    subplot(4,5,i); imshow(fullfile(folder,list(ret(i)).name)); axis image;       
+end
+%Structural based analysis:
+%Code 4
+imgo = imread('D:\Documents\NHCE Documents\20ECL59\testing\a.jpg');
+imgq = imresize(imgo,[256 256]);
+[p,q,r] = size(imgq);
+if r == 3
+    imgq = rgb2gray(imgq);
+end
+folder = 'D:\Documents\NHCE Documents\20ECL59\testing';
+list = dir(fullfile(folder,'*.jpg'));
+n = length(list);
+for i=1:n
+    file = fullfile(folder,list(i).name);
+    rawim = imread(file);
+    imgdb = imresize(rawim,[256 256]);
+    [x,y,z] = size(imgdb);
+    if z == 3
+        imgdb = rgb2gray(imgdb);
+    end
+    ssimval = ssim(imgq,imgdb);
+    st(i) = ssimval;
+end
+[a,b] = sort(st,'descend')
+ret = b(1:10);
+imshow(imgo); axis image; title('Query image');
+figure(2); title('Retrieved images');
+for i=1:length(ret)    
+    subplot(5,2,i); imshow(fullfile(folder,list(ret(i)).name)); axis image;       
+end
